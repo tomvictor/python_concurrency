@@ -22,12 +22,23 @@ class ThumbnailMakerService(object):
         self.input_dir = self.home_dir + os.path.sep + 'incoming'
         self.output_dir = self.home_dir + os.path.sep + 'outgoing'
 
+        self.download_bytes = 0
+        self.dl_loack = threading.Lock()
+
     def download_image(self,url):
         # download he image and store it into local folder
         logging.info("Downloading image " + url)
         img_filename = urlparse(url).path.split('/')[-1]
-        urlretrieve(url, self.input_dir + os.path.sep + img_filename)
+
+        dest_path = self.input_dir + os.path.sep + img_filename
+        urlretrieve(url, dest_path)
+        image_size = os.path.getsize(dest_path)
+        with self.dl_loack:
+            self.download_bytes += image_size
+        logging.info(f"image size : {image_size}")
+        logging.info(f"total size : {self.download_bytes}")
         logging.info("Downloaded " + url)
+        
 
 
     def download_images(self, img_url_list):
