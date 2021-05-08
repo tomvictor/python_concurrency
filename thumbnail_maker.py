@@ -8,13 +8,27 @@ from urllib.request import urlretrieve
 import PIL
 from PIL import Image
 
-logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
+from source import IMG_URLS
+
+
+import threading
+
+logging.basicConfig(filename='logfile.log',level=logging.DEBUG)
+
 
 class ThumbnailMakerService(object):
     def __init__(self, home_dir='.'):
         self.home_dir = home_dir
         self.input_dir = self.home_dir + os.path.sep + 'incoming'
         self.output_dir = self.home_dir + os.path.sep + 'outgoing'
+
+    def download_image(self,url):
+        # download he image and store it into local folder
+        logging.info("Downloading image " + url)
+        img_filename = urlparse(url).path.split('/')[-1]
+        urlretrieve(url, self.input_dir + os.path.sep + img_filename)
+        logging.info("Downloaded " + url)
+
 
     def download_images(self, img_url_list):
         # validate inputs
@@ -25,10 +39,19 @@ class ThumbnailMakerService(object):
         logging.info("beginning image downloads")
 
         start = time.perf_counter()
+        threads = []
         for url in img_url_list:
             # download each image and save to the input dir 
             img_filename = urlparse(url).path.split('/')[-1]
-            urlretrieve(url, self.input_dir + os.path.sep + img_filename)
+            thread = threading.Thread(target=self.download_image,args=(url,))
+            thread.start()
+            threads.append(thread)
+        
+        logging.info(f"total threads : {len(threads)}")
+
+        for thread in threads:
+            thread.join()
+        
         end = time.perf_counter()
 
         logging.info("downloaded {} images in {} seconds".format(len(img_url_list), end - start))
@@ -69,8 +92,14 @@ class ThumbnailMakerService(object):
         start = time.perf_counter()
 
         self.download_images(img_url_list)
-        self.perform_resizing()
+        # self.perform_resizing()
 
         end = time.perf_counter()
         logging.info("END make_thumbnails in {} seconds".format(end - start))
-    
+
+
+
+
+if __name__ == "__main__":
+    tn_maker = ThumbnailMakerService()
+    tn_maker.make_thumbnails(IMG_URLS)
