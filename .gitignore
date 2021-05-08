@@ -289,3 +289,5 @@ venv
 env
 .ipynb_checkpoints
 strail
+
+outgoing/
