@@ -24,20 +24,26 @@ class ThumbnailMakerService(object):
 
         self.download_bytes = 0
         self.dl_loack = threading.Lock()
+        max_concurrebt_dl = 4
+        self.dl_sem = threading.Semaphore(max_concurrebt_dl)
 
     def download_image(self,url):
         # download he image and store it into local folder
-        logging.info("Downloading image " + url)
-        img_filename = urlparse(url).path.split('/')[-1]
+        self.dl_sem.acquire()
+        try:
+            logging.info("Downloading image " + url)
+            img_filename = urlparse(url).path.split('/')[-1]
 
-        dest_path = self.input_dir + os.path.sep + img_filename
-        urlretrieve(url, dest_path)
-        image_size = os.path.getsize(dest_path)
-        with self.dl_loack:
-            self.download_bytes += image_size
-        logging.info(f"image size : {image_size}")
-        logging.info(f"total size : {self.download_bytes}")
-        logging.info("Downloaded " + url)
+            dest_path = self.input_dir + os.path.sep + img_filename
+            urlretrieve(url, dest_path)
+            image_size = os.path.getsize(dest_path)
+            with self.dl_loack:
+                self.download_bytes += image_size
+            logging.info(f"image size : {image_size}")
+            logging.info(f"total size : {self.download_bytes}")
+            logging.info("Downloaded " + url)
+        finally:
+            self.dl_sem.release()
         
 
 
